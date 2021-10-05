@@ -1,0 +1,8 @@
+<ng-container [ngSwitch]="authInfo">
+    <ng-container *ngSwitchCase="null">
+        <app-login></app-login>
+    </ng-container>
+    <ng-container *ngSwitchDefault>
+        <app-gw2-api [authInfo]="authInfo!"></app-gw2-api>
+    </ng-container>
+</ng-container>

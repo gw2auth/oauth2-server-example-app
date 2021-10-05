@@ -1,0 +1,21 @@
+<main class="p-5">
+    <div class="container mw-sm">
+        <div class="row row-cols-1 gy-3">
+            <div class="col">
+                <h4 class="mb-3">Request GW2-API-Permissions</h4>
+                <div class="container-fluid">
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-2">
+                        <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
+                            <div class="col">
+                                <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="requestGw2ApiPermissions.has(gw2ApiPermission)" role="button" (click)="onRequestGw2ApiPermissionClick(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                            </div>
+                        </ng-container>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <a [href]="'/oauth2/authorization/gw2auth?scope=' + scopeQueryString" role="button" class="btn btn-primary w-100"><fa-icon [icon]="faUserShield"></fa-icon> Login with GW2Auth</a>
+            </div>
+        </div>
+    </div>
+</main>

@@ -1,0 +1,7 @@
+com.gw2auth.example:
+  url: "https://example.gw2auth.com"
+
+server:
+  forward-headers-strategy: native
+  tomcat:
+    redirect-context-root: false

@@ -1,0 +1,56 @@
+<div class="p-5">
+    <div class="container mw-md">
+        <div class="row row-cols-1 g-5">
+            <div class="col">
+                <h3 class="mb-3">Cookies</h3>
+                <div class="table-responsive">
+                    <table class="table table-secondary table-striped align-middle">
+                        <colgroup>
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                        </colgroup>
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Expiration</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <ng-container *ngFor="let cookie of cookieInformations">
+                            <tr>
+                                <td>{{cookie.name}}</td>
+                                <td>{{cookie.type}}</td>
+                                <td>{{cookie.expiration}}</td>
+                                <td>
+                                    <button type="button" class="btn btn-light" (click)="collapse.toggle()">
+                                        <fa-icon [icon]="collapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="no-transition" #collapse="ngbCollapse" [ngbCollapse]="true">
+                                <td colspan="4">
+                                    <div class="p-2">
+                                        {{cookie.description}}
+                                    </div>
+                                </td>
+                            </tr>
+                        </ng-container>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col">
+                <h3 class="mb-3">Data</h3>
+                <div class="list-group">
+                    <div class="list-group-item">
+                        We keep access and error logs of this website. Your IP-Address may appear in these logs, however, we never use the IP-Address to perform any kind of tracking or analytics
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,25 @@
+@import '~bootstrap/scss/bootstrap';
+
+@each $w-name, $width in $container-max-widths {
+  .mw-#{$w-name} {
+    max-width: $width;
+  }
+
+  .m-#{$w-name} {
+    width: $width;
+  }
+}
+
+// region margins
+.mt-6 {
+  margin-top: 3.5rem!important;
+}
+
+.mt-7 {
+  margin-top: 4rem!important;
+}
+// endregion
+
+.collapsing.no-transition {
+  transition: none !important;
+}

@@ -1,0 +1,21 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          gw2auth:
+            provider: gw2auth
+            client-name: "GW2Auth"
+            client-id: ${GW2AUTH_CLIENT_ID}
+            client-secret: ${GW2AUTH_CLIENT_SECRET}
+            scope:
+              - "gw2:account"
+            redirect-uri: "${com.gw2auth.example.url}/login/oauth2/code/gw2auth"
+        provider:
+          gw2auth:
+            issuer-uri: ${GW2AUTH_URL}
+            user-name-attribute: sub
+
+management:
+  endpoints:
+    enabled-by-default: false
