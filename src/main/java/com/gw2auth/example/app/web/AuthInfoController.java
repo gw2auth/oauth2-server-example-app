@@ -22,7 +22,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.text.ParseException;
-import java.time.Instant;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.*;
 
 @RestController
@@ -30,11 +31,19 @@ public class AuthInfoController {
 
     private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
     private final RefreshTokenOAuth2AuthorizedClientProvider refreshTokenOAuth2AuthorizedClientProvider;
+    private final Clock clock;
+    private final Duration clockSkew;
+
+    public AuthInfoController(OAuth2AuthorizedClientService oAuth2AuthorizedClientService, RefreshTokenOAuth2AuthorizedClientProvider refreshTokenOAuth2AuthorizedClientProvider, Clock clock, Duration clockSkew) {
+        this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
+        this.refreshTokenOAuth2AuthorizedClientProvider = refreshTokenOAuth2AuthorizedClientProvider;
+        this.clock = clock;
+        this.clockSkew = clockSkew;
+    }
 
     @Autowired
     public AuthInfoController(OAuth2AuthorizedClientService oAuth2AuthorizedClientService, RefreshTokenOAuth2AuthorizedClientProvider refreshTokenOAuth2AuthorizedClientProvider) {
-        this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
-        this.refreshTokenOAuth2AuthorizedClientProvider = refreshTokenOAuth2AuthorizedClientProvider;
+        this(oAuth2AuthorizedClientService, refreshTokenOAuth2AuthorizedClientProvider, Clock.systemUTC(), Duration.ofSeconds(5L));
     }
 
     @GetMapping(value = "/api/authinfo", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -114,6 +123,6 @@ public class AuthInfoController {
     }
 
     private boolean hasTokenExpired(AbstractOAuth2Token token) {
-        return token.getExpiresAt() != null && Instant.now().isAfter(token.getExpiresAt());
+        return token.getExpiresAt() != null && this.clock.instant().minus(this.clockSkew).isAfter(token.getExpiresAt());
     }
 }

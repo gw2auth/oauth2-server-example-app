@@ -20,7 +20,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscription.add(
-        this.authService.authInfo().subscribe((authInfo) => this.authInfo = authInfo)
+        this.authService.keepAlive(10000).subscribe((authInfo) => this.authInfo = authInfo)
     );
   }
 
