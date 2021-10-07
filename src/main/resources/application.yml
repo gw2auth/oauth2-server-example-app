@@ -10,11 +10,11 @@ spring:
             client-secret: ${GW2AUTH_CLIENT_SECRET}
             scope:
               - "gw2:account"
-              - "force_consent"
             redirect-uri: "${com.gw2auth.example.url}/login/oauth2/code/gw2auth"
         provider:
           gw2auth:
             issuer-uri: ${GW2AUTH_URL}
+            authorization-uri: "${GW2AUTH_URL}/oauth2/authorize?consent=force"
             user-name-attribute: sub
 
 management:
