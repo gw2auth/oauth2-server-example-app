@@ -85,6 +85,12 @@
                 <label for="response" class="form-label">Response</label>
                 <textarea id="response" class="form-control" rows="10" [(ngModel)]="response" disabled></textarea>
             </div>
+            <div class="col">
+                <h4 class="mb-3">Background refresher</h4>
+            </div>
+            <div class="col">
+                <app-button-loadable [loading]="isLoading" [class]="'btn-primary'" (click)="onBackgroundRefreshClick()">Refresh my authorization in the background</app-button-loadable>
+            </div>
         </div>
     </div>
 </main>
