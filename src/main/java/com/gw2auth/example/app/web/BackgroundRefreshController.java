@@ -16,10 +16,11 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.RefreshTokenOAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
 import java.time.Instant;
 import java.util.*;
 
@@ -46,17 +47,25 @@ public class BackgroundRefreshController {
         this.clientsToBeRefreshed = new PriorityQueue<>(128, Comparator.comparing((v) -> v.getAccessToken().getExpiresAt()));
     }
 
+    @GetMapping(value = "/api/background-refresh", produces = MediaType.APPLICATION_JSON_VALUE)
+    public boolean isBackgroundRefreshEnabled() {
+        final String principalName = Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                .filter(OAuth2AuthenticationToken.class::isInstance)
+                .map(OAuth2AuthenticationToken.class::cast)
+                .map(OAuth2AuthenticationToken::getName)
+                .orElseThrow();
+
+        synchronized (this.monitor) {
+            return this.addedPrincipals.contains(principalName);
+        }
+    }
+
     @PostMapping(value = "/api/background-refresh", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> enableBackgroundRefresh() {
         final OAuth2AuthenticationToken token = Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
                 .filter(OAuth2AuthenticationToken.class::isInstance)
                 .map(OAuth2AuthenticationToken.class::cast)
-                .orElse(null);
-
-        if (token == null) {
-            SecurityContextHolder.getContext().setAuthentication(null);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+                .orElseThrow();
 
         final String principalName = token.getName();
         final OAuth2AuthorizedClient client = this.oAuth2AuthorizedClientService.loadAuthorizedClient(token.getAuthorizedClientRegistrationId(), principalName);
@@ -75,46 +84,57 @@ public class BackgroundRefreshController {
         return ResponseEntity.ok(null);
     }
 
+    @DeleteMapping(value = "/api/background-refresh", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> disableBackgroundRefresh() {
+        final String principalName = Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                .filter(OAuth2AuthenticationToken.class::isInstance)
+                .map(OAuth2AuthenticationToken.class::cast)
+                .map(OAuth2AuthenticationToken::getName)
+                .orElseThrow();
+
+        synchronized (this.monitor) {
+            if (this.addedPrincipals.remove(principalName)) {
+                this.clientsToBeRefreshed.removeIf((v) -> v.getPrincipalName().equals(principalName));
+            }
+        }
+
+        return ResponseEntity.ok(null);
+    }
+
     @Scheduled(fixedRate = 1000L * 30L)
     public void refreshExpiredTokens() {
         boolean hasMore = true;
 
         while (hasMore) {
-            OAuth2AuthorizedClient next;
-
-            synchronized (this.monitor) {
-                next = this.clientsToBeRefreshed.poll();
-            }
+            OAuth2AuthorizedClient next = pollNextToBeRefreshedClient();
 
             if (next != null) {
-                final String principalName = next.getPrincipalName();
-                // check if there is a new token (through login on the site)
-                final OAuth2AuthorizedClient client = this.oAuth2AuthorizedClientService.loadAuthorizedClient(next.getClientRegistration().getRegistrationId(), principalName);
-
-                if (client != null && !client.getRefreshToken().getTokenValue().equals(next.getRefreshToken().getTokenValue())) {
-                    synchronized (this.monitor) {
-                        this.clientsToBeRefreshed.offer(client);
-                    }
-                } else if (Instant.now().isAfter(next.getAccessToken().getExpiresAt())) {
+                if (Instant.now().isAfter(next.getAccessToken().getExpiresAt())) {
+                    final String clientRegistrationId = next.getClientRegistration().getRegistrationId();
+                    final String principalName = next.getPrincipalName();
                     final Authentication authentication = new NameAuthentication(principalName);
 
                     LOG.info("refreshing client={}", principalName);
                     try {
-                        next = refreshToken(authentication, next);
+                        next = refreshClient(authentication, next);
                     } catch (Exception e) {
                         LOG.warn("refreshing client={} resulted in exception", principalName, e);
                     }
 
-                    synchronized (this.monitor) {
-                        if (next != null) {
+                    if (next != null) {
+                        synchronized (this.monitor) {
                             this.clientsToBeRefreshed.offer(next);
-                            this.oAuth2AuthorizedClientService.saveAuthorizedClient(next, authentication);
-
-                            LOG.info("refreshed client={} successfully", principalName);
-                        } else {
-                            this.addedPrincipals.remove(principalName);
-                            LOG.warn("refreshing client={} returned null", principalName);
                         }
+
+                        this.oAuth2AuthorizedClientService.saveAuthorizedClient(next, authentication);
+                        LOG.info("refreshed client={} successfully", principalName);
+                    } else {
+                        synchronized (this.monitor) {
+                            this.addedPrincipals.remove(principalName);
+                        }
+
+                        this.oAuth2AuthorizedClientService.removeAuthorizedClient(clientRegistrationId, principalName);
+                        LOG.info("refreshing client={} returned null", principalName);
                     }
                 } else {
                     synchronized (this.monitor) {
@@ -129,7 +149,36 @@ public class BackgroundRefreshController {
         }
     }
 
-    public OAuth2AuthorizedClient refreshToken(Authentication principal, OAuth2AuthorizedClient client) {
+    private OAuth2AuthorizedClient pollNextToBeRefreshedClient() {
+        OAuth2AuthorizedClient next = null;
+        boolean finished = false;
+
+        while (!finished) {
+            synchronized (this.monitor) {
+                next = this.clientsToBeRefreshed.poll();
+            }
+
+            if (next != null) {
+                final String clientRegistrationId = next.getClientRegistration().getRegistrationId();
+                final String principalName = next.getPrincipalName();
+                final OAuth2AuthorizedClient savedClient = this.oAuth2AuthorizedClientService.loadAuthorizedClient(clientRegistrationId, principalName);
+
+                if (savedClient != null && !next.getRefreshToken().getTokenValue().equals(savedClient.getRefreshToken().getTokenValue())) {
+                    synchronized (this.monitor) {
+                        this.clientsToBeRefreshed.offer(savedClient);
+                    }
+                } else {
+                    finished = true;
+                }
+            } else {
+                finished = true;
+            }
+        }
+
+        return next;
+    }
+
+    private OAuth2AuthorizedClient refreshClient(Authentication principal, OAuth2AuthorizedClient client) {
         return this.refreshTokenOAuth2AuthorizedClientProvider.authorize(
                 OAuth2AuthorizationContext.withAuthorizedClient(client)
                         .principal(principal)

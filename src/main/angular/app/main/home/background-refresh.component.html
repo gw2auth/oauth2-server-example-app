@@ -1,0 +1,13 @@
+<div class="container mw-lg">
+    <div class="row row-cols-1 gy-3">
+        <div class="col">
+            <h4>Background refresher</h4>
+        </div>
+        <div class="col">
+            <ng-container [ngSwitch]="isBackgroundRefreshEnabled">
+                <app-button-loadable *ngSwitchCase="true" [loading]="isLoading" [class]="'btn-danger'" (click)="onBackgroundRefreshDisableClick()">Disable background refresh of my authorization</app-button-loadable>
+                <app-button-loadable *ngSwitchDefault [loading]="isLoading" [class]="'btn-primary'" (click)="onBackgroundRefreshEnableClick()">Refresh my authorization in the background</app-button-loadable>
+            </ng-container>
+        </div>
+    </div>
+</div>

@@ -3,6 +3,17 @@
         <app-login></app-login>
     </ng-container>
     <ng-container *ngSwitchDefault>
-        <app-gw2-api [authInfo]="authInfo!"></app-gw2-api>
+        <main class="p-5">
+            <div class="container-fluid">
+                <div class="row row-cols-1 gy-5">
+                    <div class="col">
+                        <app-gw2-api [authInfo]="authInfo!"></app-gw2-api>
+                    </div>
+                    <div class="col">
+                        <app-background-refresh></app-background-refresh>
+                    </div>
+                </div>
+            </div>
+        </main>
     </ng-container>
 </ng-container>
