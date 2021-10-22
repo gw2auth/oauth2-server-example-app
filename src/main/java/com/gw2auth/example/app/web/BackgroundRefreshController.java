@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizationContext;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -18,6 +19,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.util.*;
 
@@ -81,53 +83,56 @@ public class BackgroundRefreshController {
             OAuth2AuthorizedClient next;
 
             synchronized (this.monitor) {
-                next = this.clientsToBeRefreshed.peek();
-
-                if (next != null) {
-                    // check if there is a new token (through login on the site)
-                    final OAuth2AuthorizedClient client = this.oAuth2AuthorizedClientService.loadAuthorizedClient(next.getClientRegistration().getRegistrationId(), next.getPrincipalName());
-
-                    if (client != null && !client.getRefreshToken().getTokenValue().equals(next.getRefreshToken().getTokenValue())) {
-                        this.clientsToBeRefreshed.poll();
-                        this.clientsToBeRefreshed.offer(client);
-                        next = null;
-                    } else if (Instant.now().isBefore(next.getAccessToken().getExpiresAt())) {
-                        hasMore = false;
-                    } else {
-                        this.clientsToBeRefreshed.poll();
-                    }
-                } else {
-                    hasMore = false;
-                }
+                next = this.clientsToBeRefreshed.poll();
             }
 
-            if (hasMore && next != null) {
+            if (next != null) {
                 final String principalName = next.getPrincipalName();
+                // check if there is a new token (through login on the site)
+                final OAuth2AuthorizedClient client = this.oAuth2AuthorizedClientService.loadAuthorizedClient(next.getClientRegistration().getRegistrationId(), principalName);
 
-                LOG.info("refreshing client={}", principalName);
-                try {
-                    next = refreshToken(next);
-                } catch (Exception e) {
-                    LOG.warn("refreshing client={} resulted in exception", principalName, e);
-                }
-
-                synchronized (this.monitor) {
-                    if (next != null) {
-                        this.clientsToBeRefreshed.offer(next);
-                        LOG.info("refreshed client={} successfully", principalName);
-                    } else {
-                        this.addedPrincipals.remove(principalName);
-                        LOG.warn("refreshing client={} returned null", principalName);
+                if (client != null && !client.getRefreshToken().getTokenValue().equals(next.getRefreshToken().getTokenValue())) {
+                    synchronized (this.monitor) {
+                        this.clientsToBeRefreshed.offer(client);
                     }
+                } else if (Instant.now().isAfter(next.getAccessToken().getExpiresAt())) {
+                    final Authentication authentication = new NameAuthentication(principalName);
+
+                    LOG.info("refreshing client={}", principalName);
+                    try {
+                        next = refreshToken(authentication, next);
+                    } catch (Exception e) {
+                        LOG.warn("refreshing client={} resulted in exception", principalName, e);
+                    }
+
+                    synchronized (this.monitor) {
+                        if (next != null) {
+                            this.clientsToBeRefreshed.offer(next);
+                            this.oAuth2AuthorizedClientService.saveAuthorizedClient(next, authentication);
+
+                            LOG.info("refreshed client={} successfully", principalName);
+                        } else {
+                            this.addedPrincipals.remove(principalName);
+                            LOG.warn("refreshing client={} returned null", principalName);
+                        }
+                    }
+                } else {
+                    synchronized (this.monitor) {
+                        this.clientsToBeRefreshed.offer(next);
+                    }
+
+                    hasMore = false;
                 }
+            } else {
+                hasMore = false;
             }
         }
     }
 
-    public OAuth2AuthorizedClient refreshToken(OAuth2AuthorizedClient client) {
+    public OAuth2AuthorizedClient refreshToken(Authentication principal, OAuth2AuthorizedClient client) {
         return this.refreshTokenOAuth2AuthorizedClientProvider.authorize(
                 OAuth2AuthorizationContext.withAuthorizedClient(client)
-                        .principal(new NameAuthentication(client.getPrincipalName()))
+                        .principal(principal)
                         .build()
         );
     }
