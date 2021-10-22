@@ -84,16 +84,17 @@ public class BackgroundRefreshController {
                 next = this.clientsToBeRefreshed.peek();
 
                 if (next != null) {
-                    this.clientsToBeRefreshed.poll();
-
                     // check if there is a new token (through login on the site)
                     final OAuth2AuthorizedClient client = this.oAuth2AuthorizedClientService.loadAuthorizedClient(next.getClientRegistration().getRegistrationId(), next.getPrincipalName());
 
                     if (client != null && !client.getRefreshToken().getTokenValue().equals(next.getRefreshToken().getTokenValue())) {
+                        this.clientsToBeRefreshed.poll();
                         this.clientsToBeRefreshed.offer(client);
                         next = null;
                     } else if (Instant.now().isBefore(next.getAccessToken().getExpiresAt())) {
                         hasMore = false;
+                    } else {
+                        this.clientsToBeRefreshed.poll();
                     }
                 } else {
                     hasMore = false;
