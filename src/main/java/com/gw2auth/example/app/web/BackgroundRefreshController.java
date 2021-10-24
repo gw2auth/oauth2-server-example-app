@@ -11,11 +11,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.client.OAuth2AuthorizationContext;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.RefreshTokenOAuth2AuthorizedClientProvider;
+import org.springframework.security.oauth2.client.*;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -117,7 +115,15 @@ public class BackgroundRefreshController {
                     LOG.info("refreshing client={}", principalName);
                     try {
                         next = refreshClient(authentication, next);
+                    } catch (ClientAuthorizationException e) {
+                        final String errorCode = e.getError().getErrorCode();
+                        if (!errorCode.equals(OAuth2ErrorCodes.SERVER_ERROR) && !errorCode.equals(OAuth2ErrorCodes.TEMPORARILY_UNAVAILABLE)) {
+                            next = null;
+                        }
+
+                        LOG.warn("refreshing client={} resulted in exception", principalName, e);
                     } catch (Exception e) {
+                        next = null;
                         LOG.warn("refreshing client={} resulted in exception", principalName, e);
                     }
 
