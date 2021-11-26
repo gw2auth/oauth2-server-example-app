@@ -8,7 +8,17 @@ export class Gw2ApiService {
 
     constructor(private readonly httpClient: HttpClient) {}
 
-    getFromGw2Api(path: string, params: {[K in string]: any}, gw2ApiToken?: string): Observable<string> {
+    getFromGw2Api(path: string, params: {[K in string]: any}, gw2ApiToken?: string): Observable<any> {
+        const requestURL = 'https://api.guildwars2.com/' + path;
+
+        if (gw2ApiToken != undefined) {
+            params['access_token'] = gw2ApiToken;
+        }
+
+        return this.httpClient.get(requestURL, { params: params });
+    }
+
+    getFromGw2ApiRaw(path: string, params: {[K in string]: any}, gw2ApiToken?: string): Observable<string> {
         const requestURL = 'https://api.guildwars2.com/' + path;
 
         if (gw2ApiToken != undefined) {

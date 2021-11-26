@@ -1,0 +1,55 @@
+<div class="container mw-lg">
+    <div class="row row-cols-1 gy-3">
+        <div class="col">
+            <h4>MC and Laurel Query</h4>
+        </div>
+        <div class="col">
+            <label for="selectGw2Accounts" class="form-label">Query GW2-Accounts selection</label>
+            <div class="container-fluid" id="selectGw2Accounts">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-2">
+                    <ng-container *ngFor="let apiToken of validApiTokens">
+                        <div class="col">
+                            <span class="badge rounded-pill p-2" role="button" [ngClass]="selectedApiTokens.has(apiToken.gw2AccountId) ? 'bg-success' : 'bg-danger'" (click)="selectedApiTokens.add(apiToken.gw2AccountId)">
+                                <fa-icon [icon]="selectedApiTokens.has(apiToken.gw2AccountId) ? faCheck : faBan"></fa-icon> {{apiToken.gw2ApiToken.name}}
+                            </span>
+                        </div>
+                    </ng-container>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <app-button-loadable [loading]="isLoading" [class]="'btn-primary'" (click)="onRequestApiClick()">Request</app-button-loadable>
+        </div>
+        <div *ngIf="result != null" class="col">
+            <label for="result" class="form-label">Result</label>
+            <div id="result" class="table-responsive">
+                <table class="table table-secondary table-striped align-middle">
+                    <colgroup>
+                        <col class="w-auto" />
+                        <col class="w-auto" />
+                        <col class="w-auto" />
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th scope="col">GW2-Account</th>
+                        <th scope="col">Mystic Coins</th>
+                        <th scope="col">Laurels</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let account of result!.accounts">
+                        <td>{{account.gw2ApiToken.name}}</td>
+                        <td>{{account.mcs}}</td>
+                        <td>{{account.laurels}}</td>
+                    </tr>
+                    <tr>
+                        <td>Total</td>
+                        <td>{{result!.mcs}}</td>
+                        <td>{{result!.laurels}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

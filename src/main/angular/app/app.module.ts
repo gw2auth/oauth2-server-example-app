@@ -24,6 +24,7 @@ import {Gw2ApiPermissionBadgeComponent} from './main/home/gw2-api-permission-bad
 import {HeaderComponent} from './main/header/header.component';
 import {LoginComponent} from './main/home/login.component';
 import {BackgroundRefreshComponent} from './main/home/background-refresh.component';
+import { McAndLaurelQueryComponent } from './main/home/mc-and-laurel-query.component';
 
 
 const cookieConfig: NgcCookieConsentConfig = {
@@ -73,7 +74,8 @@ const cookieConfig: NgcCookieConsentConfig = {
     LoginComponent,
     Gw2ApiComponent,
     Gw2ApiPermissionBadgeComponent,
-    BackgroundRefreshComponent
+    BackgroundRefreshComponent,
+    McAndLaurelQueryComponent
   ],
   imports: [
     BrowserModule,

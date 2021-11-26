@@ -4,9 +4,6 @@ import {Gw2ApiService} from './gw2-api.service';
 import {faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import {Gw2ApiPermission} from './gw2.model';
 import {ToastService} from '../../toast/toast.service';
-import {HttpClient, HttpErrorResponse} from '@angular/common/http';
-import {catchError, map} from 'rxjs/operators';
-import {of} from 'rxjs';
 
 
 interface QueryParam {
@@ -41,7 +38,7 @@ export class Gw2ApiComponent implements OnInit, OnChanges {
 
   response: string | null = null;
 
-  constructor(private readonly gw2ApiService: Gw2ApiService, private readonly toastService: ToastService, private readonly httpClient: HttpClient) { }
+  constructor(private readonly gw2ApiService: Gw2ApiService, private readonly toastService: ToastService) { }
 
   ngOnInit(): void {
   }
@@ -122,28 +119,9 @@ export class Gw2ApiComponent implements OnInit, OnChanges {
       this.toastService.show('GW2-API-Request', `Requesting GW2-API at URL '${url}' with API-Token '${gw2ApiToken.name}'`);
     }
 
-    this.gw2ApiService.getFromGw2Api(url, params, gw2ApiTokenValue).subscribe((response) => {
+    this.gw2ApiService.getFromGw2ApiRaw(url, params, gw2ApiTokenValue).subscribe((response) => {
       this.isLoading = false;
       this.response = response;
     });
-  }
-
-  onBackgroundRefreshClick(): void {
-    this.isLoading = true;
-
-    this.httpClient.post('/api/background-refresh', null, { observe: 'response' })
-        .pipe(
-            map((resp) => resp.status),
-            catchError((e: HttpErrorResponse) => of(e.status))
-        )
-        .subscribe((r) => {
-          if (r == 200) {
-            this.toastService.show('Background refresh enabled', 'The background refresh for your authorization has been enabled');
-          } else {
-            this.toastService.show('Failed to enable background refresh', 'The background refresh could not be enabled');
-          }
-
-          this.isLoading = false;
-        });
   }
 }
