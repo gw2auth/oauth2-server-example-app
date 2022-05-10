@@ -6,13 +6,13 @@
 
     <groupId>com.gw2auth</groupId>
     <artifactId>oauth2-server-example-app</artifactId>
-    <version>1.7.0</version>
+    <version>1.8.0</version>
     <packaging>jar</packaging>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.3</version>
+        <version>2.6.7</version>
         <relativePath/>
     </parent>
 
@@ -70,7 +70,7 @@
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>1.12.1</version>
                 <configuration>
-                    <nodeVersion>v16.14.0</nodeVersion>
+                    <nodeVersion>v16.15.0</nodeVersion>
                 </configuration>
                 <executions>
                     <execution>
