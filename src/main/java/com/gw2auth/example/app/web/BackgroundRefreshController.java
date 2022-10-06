@@ -38,6 +38,7 @@ import java.util.*;
 public class BackgroundRefreshController {
 
     private static final Logger LOG = LoggerFactory.getLogger(BackgroundRefreshController.class);
+    private static final Duration MAX_TOKEN_AGE = Duration.ofMinutes(5L);
     private static final Duration CLOCK_SKEW = Duration.ofSeconds(5L);
 
     private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
@@ -121,7 +122,11 @@ public class BackgroundRefreshController {
             OAuth2AuthorizedClient next = pollNextToBeRefreshedClient();
 
             if (next != null) {
-                if (Instant.now().isAfter(next.getAccessToken().getExpiresAt().minus(CLOCK_SKEW))) {
+                final Instant now = Instant.now();
+
+                if (now.isAfter(next.getAccessToken().getExpiresAt().minus(CLOCK_SKEW))
+                        || now.isAfter(next.getAccessToken().getIssuedAt().plus(MAX_TOKEN_AGE))) {
+
                     final String clientRegistrationId = next.getClientRegistration().getRegistrationId();
                     final String principalName = next.getPrincipalName();
                     final Authentication authentication = new NameAuthentication(principalName);
