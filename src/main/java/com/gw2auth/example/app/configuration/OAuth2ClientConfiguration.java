@@ -18,6 +18,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.servlet.http.HttpServletRequest;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,7 +28,9 @@ public class OAuth2ClientConfiguration {
 
     @Bean
     public RefreshTokenOAuth2AuthorizedClientProvider refreshTokenOAuth2AuthorizedClientProvider() {
-        return new RefreshTokenOAuth2AuthorizedClientProvider();
+        final RefreshTokenOAuth2AuthorizedClientProvider refreshTokenOAuth2AuthorizedClientProvider = new RefreshTokenOAuth2AuthorizedClientProvider();
+        refreshTokenOAuth2AuthorizedClientProvider.setClockSkew(Duration.ofDays(365L));// forces to always allow a refresh, may otherwise decline a refresh attempt and return null instead
+        return refreshTokenOAuth2AuthorizedClientProvider;
     }
 
     @Bean
